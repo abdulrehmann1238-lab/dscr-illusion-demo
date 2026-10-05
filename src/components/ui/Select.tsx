@@ -1,59 +1,78 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
 import { ChevronDown, AlertCircle } from 'lucide-react';
 
-export interface SelectOption {
+interface OptionItem {
   value: string;
   label: string;
 }
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  options: OptionItem[] | string[];
   error?: string;
-  hint?: string;
-  options?: SelectOption[];
+  helpText?: string;
 }
 
-export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, hint, options, children, id, ...props }, ref) => {
-    const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+export const Select: React.FC<SelectProps> = ({
+  label,
+  options,
+  error,
+  helpText,
+  id,
+  value,
+  className = '',
+  ...props
+}) => {
+  const selectId = id || `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
-    return (
-      <div className="w-full flex flex-col gap-1.5 text-left">
-        {label && (
-          <label htmlFor={selectId} className="text-xs font-semibold tracking-wider uppercase text-text-2">
-            {label}
-            {props.required && <span className="text-accent ml-1">*</span>}
-          </label>
-        )}
-        <div className="relative flex items-center">
-          <select
-            id={selectId}
-            ref={ref}
-            className={cn(
-              'w-full bg-elevated text-text text-sm rounded-sm border border-border-strong px-3 py-2.5 pr-9 appearance-none transition-all duration-fast outline-none cursor-pointer',
-              'hover:border-text-2 focus:border-primary focus:ring-1 focus:ring-primary',
-              error && 'border-error focus:border-error focus:ring-error',
-              'disabled:bg-bg disabled:text-text-muted disabled:cursor-not-allowed',
-              className
-            )}
-            {...props}
-          >
-            {options
-              ? options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))
-              : children}
-          </select>
-          <ChevronDown className="w-4 h-4 text-text-muted pointer-events-none absolute right-3" />
+  return (
+    <div className={`relative flex flex-col ${className}`}>
+      <div className="relative">
+        <select
+          id={selectId}
+          value={value}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${selectId}-error` : helpText ? `${selectId}-help` : undefined}
+          className={`peer w-full h-14 pt-5 pb-1 px-4 pr-10 bg-cream-100 text-ink-900 border rounded-sm text-base appearance-none transition-colors duration-fast focus:outline-none cursor-pointer ${
+            error
+              ? 'border-err focus:border-err focus:ring-1 focus:ring-err'
+              : 'border-line hover:border-line-strong focus:border-navy-900'
+          }`}
+          {...props}
+        >
+          {options.map((opt, i) => {
+            const val = typeof opt === 'string' ? opt : opt.value;
+            const lbl = typeof opt === 'string' ? opt : opt.label;
+            return (
+              <option key={i} value={val}>
+                {lbl}
+              </option>
+            );
+          })}
+        </select>
+
+        {/* Floating Label */}
+        <label
+          htmlFor={selectId}
+          className="absolute left-4 top-2 text-[0.75rem] font-medium tracking-wide text-ink-600 pointer-events-none select-none"
+        >
+          {label} {props.required && <span className="text-err">*</span>}
+        </label>
+
+        {/* Chevron icon */}
+        <div className="absolute right-4 top-4.5 text-ink-600 pointer-events-none">
+          <ChevronDown className="w-4 h-4" />
         </div>
-        {error && <span className="text-xs text-error font-medium">{error}</span>}
-        {hint && !error && <span className="text-xs text-text-muted">{hint}</span>}
       </div>
-    );
-  }
-);
 
-Select.displayName = 'Select';
+      {error ? (
+        <span id={`${selectId}-error`} className="flex items-center gap-1.5 mt-1.5 text-xs text-err">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{error}</span>
+        </span>
+      ) : (
+        helpText && <span id={`${selectId}-help`} className="mt-1.5 text-xs text-ink-600">{helpText}</span>
+      )}
+    </div>
+  );
+};

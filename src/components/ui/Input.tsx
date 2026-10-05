@@ -1,63 +1,97 @@
-import React from 'react';
-import { cn } from '../../lib/utils';
+import React, { useState } from 'react';
 import { AlertCircle, Check } from 'lucide-react';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
   error?: string;
-  success?: boolean;
-  hint?: string;
-  leftIcon?: React.ReactNode;
+  isValid?: boolean;
+  helpText?: string;
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, success, hint, leftIcon, id, ...props }, ref) => {
-    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+export const Input: React.FC<InputProps> = ({
+  label,
+  error,
+  isValid = false,
+  helpText,
+  id,
+  value,
+  onFocus,
+  onBlur,
+  className = '',
+  ...props
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const inputId = id || `input-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  const hasValue = value !== undefined && value !== null && String(value).length > 0;
+  const isLifted = isFocused || hasValue;
 
-    return (
-      <div className="w-full flex flex-col gap-1.5 text-left">
-        {label && (
-          <label htmlFor={inputId} className="text-xs font-semibold tracking-wider uppercase text-text-2">
-            {label}
-            {props.required && <span className="text-accent ml-1">*</span>}
-          </label>
+  return (
+    <div className={`relative flex flex-col ${className}`}>
+      <div className="relative">
+        <input
+          id={inputId}
+          value={value}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : helpText ? `${inputId}-help` : undefined}
+          className={`peer w-full h-14 pt-5 pb-1 px-4 bg-cream-100 text-ink-900 border rounded-sm text-base transition-colors duration-fast placeholder-transparent focus:outline-none ${
+            error
+              ? 'border-err focus:border-err focus:ring-1 focus:ring-err'
+              : 'border-line hover:border-line-strong focus:border-navy-900'
+          }`}
+          placeholder={label}
+          {...props}
+        />
+
+        {/* Floating Label per PRD 14.3 */}
+        <label
+          htmlFor={inputId}
+          className={`absolute left-4 transition-all duration-fast pointer-events-none select-none ${
+            isLifted
+              ? 'top-2 text-[0.75rem] font-medium tracking-wide text-ink-600'
+              : 'top-4 text-base text-ink-400'
+          } ${error ? 'text-err' : ''}`}
+        >
+          {label} {props.required && <span className="text-err">*</span>}
+        </label>
+
+        {/* Status icons (check on valid blur, alert on error) */}
+        {isValid && !error && (
+          <div className="absolute right-4 top-4.5 text-ok pointer-events-none">
+            <Check className="w-4 h-4" />
+          </div>
         )}
-        <div className="relative flex items-center">
-          {leftIcon && (
-            <div className="absolute left-3 text-text-muted pointer-events-none flex items-center">
-              {leftIcon}
-            </div>
-          )}
-          <input
-            id={inputId}
-            ref={ref}
-            className={cn(
-              'w-full bg-elevated text-text placeholder:text-text-muted/60 text-sm rounded-sm border border-border-strong px-3 py-2.5 transition-all duration-fast outline-none',
-              'hover:border-text-2 focus:border-primary focus:ring-1 focus:ring-primary',
-              leftIcon && 'pl-9',
-              error && 'border-error focus:border-error focus:ring-error pr-9',
-              success && 'border-success focus:border-success focus:ring-success pr-9',
-              'disabled:bg-bg disabled:text-text-muted disabled:cursor-not-allowed',
-              className
-            )}
-            {...props}
-          />
-          {error && (
-            <div className="absolute right-3 text-error pointer-events-none flex items-center">
-              <AlertCircle className="w-4 h-4" />
-            </div>
-          )}
-          {success && !error && (
-            <div className="absolute right-3 text-success pointer-events-none flex items-center">
-              <Check className="w-4 h-4" />
-            </div>
-          )}
-        </div>
-        {error && <span className="text-xs text-error font-medium">{error}</span>}
-        {hint && !error && <span className="text-xs text-text-muted">{hint}</span>}
+        {error && (
+          <div className="absolute right-4 top-4.5 text-err pointer-events-none">
+            <AlertCircle className="w-4 h-4" />
+          </div>
+        )}
       </div>
-    );
-  }
-);
 
-Input.displayName = 'Input';
+      {/* Error message slide-in */}
+      {error && (
+        <div
+          id={`${inputId}-error`}
+          className="flex items-center gap-1.5 mt-1.5 text-xs text-err transition-all duration-fast animate-in fade-in slide-in-from-top-1"
+        >
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Helper text */}
+      {!error && helpText && (
+        <span id={`${inputId}-help`} className="mt-1.5 text-xs text-ink-600">
+          {helpText}
+        </span>
+      )}
+    </div>
+  );
+};

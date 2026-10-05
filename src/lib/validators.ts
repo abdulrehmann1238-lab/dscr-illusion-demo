@@ -1,32 +1,38 @@
 /**
- * Validation utilities for Canadian local business forms
+ * Form field validation helpers per PRD Section 13.4 & 14.3
  */
 
-export function isValidCanadianPostalCode(postalCode: string): boolean {
-  // e.g. T2P 1J9, K1A 0B1, H3Z 2Y7 (standard Canadian postal format)
-  const regex = /^[A-CEGHJ-NPR-TV-Z]\d[A-CEGHJ-NPR-TV-Z][ -]?\d[A-CEGHJ-NPR-TV-Z]\d$/i;
-  return regex.test(postalCode.trim());
-}
+const DISPOSABLE_EMAIL_DOMAINS = [
+  'mailinator.com',
+  'tempmail.com',
+  '10minutemail.com',
+  'guerrillamail.com',
+  'throwawaymail.com',
+  'yopmail.com',
+  'sharklasers.com',
+];
 
-export function formatCanadianPostalCode(raw: string): string {
-  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (clean.length > 3) {
-    return `${clean.slice(0, 3)} ${clean.slice(3, 6)}`;
+export function isValidEmail(email: string): { valid: boolean; message?: string } {
+  if (!email || !email.trim()) {
+    return { valid: false, message: 'Please enter your email address.' };
   }
-  return clean;
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.trim())) {
+    return { valid: false, message: 'Please enter a valid email address.' };
+  }
+
+  const domain = email.trim().split('@')[1]?.toLowerCase();
+  if (domain && DISPOSABLE_EMAIL_DOMAINS.includes(domain)) {
+    return { valid: false, message: 'Please provide a permanent work or personal email.' };
+  }
+
+  return { valid: true };
 }
 
-export function isValidPhone(phone: string): boolean {
-  const digits = phone.replace(/\D/g, '');
-  return digits.length === 10 || (digits.length === 11 && digits.startsWith('1'));
-}
-
-export function isValidEmail(email: string): boolean {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email.trim());
-}
-
-export function isValidDomain(domain: string): boolean {
-  const regex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
-  return regex.test(domain.trim());
+export function isValidRequired(val: string, minLength = 2, fieldName = 'This field'): { valid: boolean; message?: string } {
+  if (!val || val.trim().length < minLength) {
+    return { valid: false, message: `${fieldName} is required (at least ${minLength} characters).` };
+  }
+  return { valid: true };
 }

@@ -1,57 +1,74 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Plus, Minus } from 'lucide-react';
 
-export interface AccordionItemProps {
-  id?: string;
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
+export interface AccordionEntry {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+interface AccordionProps {
+  items: AccordionEntry[];
+  allowMultiple?: boolean;
   className?: string;
 }
 
-export const AccordionItem: React.FC<AccordionItemProps> = ({
-  title,
-  subtitle,
-  children,
-  defaultOpen = false,
-  className,
+export const Accordion: React.FC<AccordionProps> = ({
+  items,
+  allowMultiple = false,
+  className = '',
 }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [openIds, setOpenIds] = useState<string[]>([items[0]?.id || '']);
+
+  const toggle = (id: string) => {
+    if (allowMultiple) {
+      setOpenIds((prev) =>
+        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      );
+    } else {
+      setOpenIds((prev) => (prev.includes(id) ? [] : [id]));
+    }
+  };
 
   return (
-    <div className={cn('border border-border rounded-md bg-elevated overflow-hidden', className)}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-surface/60 transition-colors select-none cursor-pointer"
-      >
-        <div className="flex flex-col gap-0.5 pr-4">
-          <span className="text-sm font-semibold text-text">{title}</span>
-          {subtitle && <span className="text-xs text-text-2">{subtitle}</span>}
-        </div>
-        <ChevronDown
-          className={cn(
-            'w-4 h-4 text-text-muted shrink-0 transition-transform duration-fast',
-            isOpen && 'rotate-180 text-primary'
-          )}
-        />
-      </button>
+    <div className={`divide-y divide-line border-t border-b border-line ${className}`}>
+      {items.map((item) => {
+        const isOpen = openIds.includes(item.id);
+        return (
+          <div key={item.id} className="py-2">
+            <button
+              type="button"
+              onClick={() => toggle(item.id)}
+              aria-expanded={isOpen}
+              className="w-full py-4 flex items-center justify-between text-left group"
+            >
+              <span className="font-display text-lg md:text-xl text-ink-900 group-hover:text-gold-700 transition-colors duration-fast pr-6">
+                {item.question}
+              </span>
+              <span className="flex-shrink-0 text-ink-600 group-hover:text-ink-900 transition-colors">
+                {isOpen ? (
+                  <Minus className="w-5 h-5 text-gold-700" />
+                ) : (
+                  <Plus className="w-5 h-5" />
+                )}
+              </span>
+            </button>
 
-      <div
-        className={cn(
-          'grid transition-all duration-med ease-out overflow-hidden',
-          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-        )}
-      >
-        <div className="min-h-0">
-          <div className="p-4 pt-1 border-t border-border/50 text-sm text-text-2 leading-relaxed">
-            {children}
+            {/* Smooth CSS grid transition per PRD 13.2 (grid-template-rows: 0fr to 1fr) */}
+            <div
+              className={`grid transition-[grid-template-rows] duration-med ease-out ${
+                isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+              }`}
+            >
+              <div className="overflow-hidden">
+                <p className="pb-5 text-sm md:text-base text-ink-600 leading-relaxed max-w-3xl">
+                  {item.answer}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 };
